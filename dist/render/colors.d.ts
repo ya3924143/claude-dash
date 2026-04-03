@@ -1,0 +1,21 @@
+import type { ColorScheme } from '../types.js';
+export declare const RESET = "\u001B[0m";
+export declare function dim(text: string): string;
+export declare function bold(text: string): string;
+export declare function red(text: string): string;
+export declare function green(text: string): string;
+export declare function yellow(text: string): string;
+export declare function cyan(text: string): string;
+export declare function magenta(text: string): string;
+export declare function blue(text: string): string;
+export declare function white(text: string): string;
+export declare function brightGreen(text: string): string;
+export declare function brightYellow(text: string): string;
+export declare function brightBlue(text: string): string;
+export declare function brightCyan(text: string): string;
+export declare function brightMagenta(text: string): string;
+export declare function brightWhite(text: string): string;
+export declare function getContextColor(percent: number, scheme: ColorScheme): string;
+export declare function getQuotaColor(percent: number, scheme: ColorScheme): string;
+export declare function getModelColor(model: 'O' | 'S' | 'H', scheme: ColorScheme): string;
+//# sourceMappingURL=colors.d.ts.map
