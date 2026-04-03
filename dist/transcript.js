@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import readline from 'readline';
 function emptyModelCount() {
     return { O: 0, S: 0, H: 0, tokens: 0 };
@@ -56,9 +57,10 @@ export async function parseSessionStats(transcriptPath) {
         return empty();
     }
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-    // Each element is a completed turn (started by a human message)
+    // Each element: { stats, startedAt } — one per user message
     const turns = [];
     let currentTurn = emptyTurnStats();
+    let currentStartedAt = '';
     let inTurn = false;
     try {
         for await (const line of rl) {
@@ -74,9 +76,10 @@ export async function parseSessionStats(transcriptPath) {
             }
             if (entry['type'] === 'user' || entry['type'] === 'human') {
                 if (inTurn) {
-                    turns.push(currentTurn);
+                    turns.push({ stats: currentTurn, startedAt: currentStartedAt });
                     currentTurn = emptyTurnStats();
                 }
+                currentStartedAt = entry['timestamp'] ?? '';
                 inTurn = true;
                 continue;
             }
@@ -102,17 +105,99 @@ export async function parseSessionStats(transcriptPath) {
     finally {
         rl.close();
     }
-    // Push the final in-progress turn (currentTurn)
     if (inTurn) {
-        turns.push(currentTurn);
+        turns.push({ stats: currentTurn, startedAt: currentStartedAt });
     }
-    const session = turns.reduce(mergeTurnStats, emptyTurnStats());
-    const lastTurn = turns.length >= 2 ? turns[turns.length - 2] : emptyTurnStats();
-    const latestTurn = turns.length >= 1 ? turns[turns.length - 1] : emptyTurnStats();
+    // Collect turn timestamps for sub-agent attribution
+    const turnTimestamps = turns.map(t => t.startedAt);
+    // Parse sub-agents and attribute to turns by timestamp
+    const subagentEntries = await parseSubagentEntries(transcriptPath);
+    const turnStatsWithSubagents = turns.map((turn, i) => {
+        const turnStart = turnTimestamps[i];
+        const nextTurnStart = turnTimestamps[i + 1] ?? '\uffff'; // after everything
+        const matched = subagentEntries.filter(e => e.timestamp >= turnStart && e.timestamp < nextTurnStart);
+        const subStats = matched.reduce((acc, e) => addModelUsage(acc, e.modelId, e.tokenCount), emptyTurnStats());
+        return mergeTurnStats(turn.stats, subStats);
+    });
+    const session = turnStatsWithSubagents.reduce(mergeTurnStats, emptyTurnStats());
+    const lastTurn = turnStatsWithSubagents.length >= 2
+        ? turnStatsWithSubagents[turnStatsWithSubagents.length - 2]
+        : emptyTurnStats();
+    const latestTurn = turnStatsWithSubagents.length >= 1
+        ? turnStatsWithSubagents[turnStatsWithSubagents.length - 1]
+        : emptyTurnStats();
     return {
         lastTurn,
         currentTurn: latestTurn,
         session,
     };
+}
+async function parseSubagentEntries(transcriptPath) {
+    const sessionDir = transcriptPath.replace(/\.jsonl$/, '');
+    const subagentsDir = path.join(sessionDir, 'subagents');
+    if (!fs.existsSync(subagentsDir)) {
+        return [];
+    }
+    let files;
+    try {
+        files = fs.readdirSync(subagentsDir).filter(f => f.endsWith('.jsonl'));
+    }
+    catch {
+        return [];
+    }
+    const allEntries = [];
+    for (const file of files) {
+        const filePath = path.join(subagentsDir, file);
+        const entries = await parseSubagentFile(filePath);
+        allEntries.push(...entries);
+    }
+    return allEntries;
+}
+async function parseSubagentFile(filePath) {
+    let stream;
+    try {
+        stream = fs.createReadStream(filePath, { encoding: 'utf8' });
+    }
+    catch {
+        return [];
+    }
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    const entries = [];
+    try {
+        for await (const line of rl) {
+            const trimmed = line.trim();
+            if (!trimmed)
+                continue;
+            let entry;
+            try {
+                entry = JSON.parse(trimmed);
+            }
+            catch {
+                continue;
+            }
+            if (entry['type'] !== 'assistant')
+                continue;
+            const timestamp = entry['timestamp'] ?? '';
+            const message = entry['message'];
+            if (!message)
+                continue;
+            const usage = message['usage'];
+            const modelId = message['model'];
+            if (usage && modelId) {
+                const tokenCount = (usage['input_tokens'] ?? 0) +
+                    (usage['output_tokens'] ?? 0) +
+                    (usage['cache_read_input_tokens'] ?? 0) +
+                    (usage['cache_creation_input_tokens'] ?? 0);
+                entries.push({ timestamp, modelId, tokenCount });
+            }
+        }
+    }
+    catch {
+        // Stream errors — return what we have
+    }
+    finally {
+        rl.close();
+    }
+    return entries;
 }
 //# sourceMappingURL=transcript.js.map
