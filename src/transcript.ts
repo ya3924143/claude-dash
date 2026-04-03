@@ -80,7 +80,7 @@ export async function parseSessionStats(transcriptPath: string): Promise<Session
         continue;
       }
 
-      if (entry['type'] === 'human') {
+      if (entry['type'] === 'user' || entry['type'] === 'human') {
         if (inTurn) {
           turns.push(currentTurn);
           currentTurn = emptyTurnStats();

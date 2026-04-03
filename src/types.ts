@@ -14,6 +14,10 @@ export interface StdinData {
     used_percentage?: number | null;
     remaining_percentage?: number | null;
   };
+  rate_limits?: {
+    five_hour?: { used_percentage?: number; resets_at?: number; }; // resets_at: Unix epoch seconds
+    seven_day?: { used_percentage?: number; resets_at?: number; }; // resets_at: Unix epoch seconds
+  };
 }
 
 export interface UsageData {

@@ -5,7 +5,29 @@ import { loadConfig } from './config.js';
 import { parseSessionStats } from './transcript.js';
 import { render } from './render/index.js';
 import { getUsage } from './usage-api.js';
-import type { RenderContext } from './types.js';
+import type { RenderContext, StdinData, UsageData } from './types.js';
+
+function getUsageFromStdin(stdin: StdinData): UsageData | null {
+  const rl = stdin.rate_limits;
+  if (!rl) return null;
+
+  const fiveHour = typeof rl.five_hour?.used_percentage === 'number'
+    ? Math.round(rl.five_hour.used_percentage) : null;
+  const sevenDay = typeof rl.seven_day?.used_percentage === 'number'
+    ? Math.round(rl.seven_day.used_percentage) : null;
+
+  if (fiveHour === null && sevenDay === null) return null;
+
+  return {
+    planName: 'Max', // TODO: stdin doesn't include plan info; fallback to credentials if available
+    fiveHour,
+    sevenDay,
+    fiveHourResetAt: rl.five_hour?.resets_at
+      ? new Date(rl.five_hour.resets_at * 1000) : null,
+    sevenDayResetAt: rl.seven_day?.resets_at
+      ? new Date(rl.seven_day.resets_at * 1000) : null,
+  };
+}
 
 export function formatSessionDuration(startedAt: Date, now: Date = new Date()): string {
   const diffMs = now.getTime() - startedAt.getTime();
@@ -41,7 +63,7 @@ export async function main(): Promise<void> {
 
     const contextPercent = getContextPercent(stdin);
 
-    const usageData = await getUsage();
+    const usageData = getUsageFromStdin(stdin) ?? await getUsage();
 
     const ctx: RenderContext = {
       stdin,
