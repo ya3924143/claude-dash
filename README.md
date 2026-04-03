@@ -16,20 +16,18 @@
 
 ---
 
-## ✨ 特性
+## 特性
 
-| | 功能 | 说明 |
-|:---:|------|------|
-| 📊 | **逐轮模型追踪** | 上轮 / 本轮 / 对话累计的 O·S·H 调用次数 + token |
-| 📈 | **配额进度条** | 5h / 7d 用量 + 绝对刷新时间（如 `17:42`） |
-| 🎯 | **上下文指示器** | `○ ◔ ◑ ◕ ●` 五级圆弧，颜色随用量渐变 |
-| 🎨 | **10 款内置方案** | 经典 / 极简 / 仪表盘 / 霓虹 / 复古 等，开箱即用 |
-| 🔧 | **完全可配置** | 每个元素独立开关，自由组合 |
-| 🔒 | **安全无副作用** | 零 token 消耗，不调 AI API，不会封号 |
+- **逐轮模型追踪** — 上轮 / 本轮 / 对话累计的 O·S·H 调用次数 + token
+- **配额进度条** — 5h / 7d 用量 + 绝对刷新时间（如 `17:42`）
+- **上下文指示器** — `○ ◔ ◑ ◕ ●` 五级圆弧，颜色随用量渐变
+- **10 款内置方案** — 经典 / 极简 / 仪表盘 / 霓虹 / 复古 等，开箱即用
+- **完全可配置** — 每个元素独立开关，自由组合
+- **安全无副作用** — 零 token 消耗，不调 AI API，不会封号
 
 ---
 
-## 🚀 安装
+## 安装
 
 在 Claude Code 中直接说：
 
@@ -59,7 +57,7 @@ git clone https://github.com/ya3924143/claude-dash.git ~/.claude/plugins/claude-
 
 ---
 
-## 🎭 方案一览
+## 方案一览
 
 安装后输入 `/claude-dash:setup` 选择方案，或直接编辑配置文件。
 
@@ -147,7 +145,7 @@ git clone https://github.com/ya3924143/claude-dash.git ~/.claude/plugins/claude-
 
 ---
 
-## 🔧 配置
+## 配置
 
 配置文件：`~/.claude/plugins/claude-dash/config.json`
 
@@ -220,7 +218,7 @@ git clone https://github.com/ya3924143/claude-dash.git ~/.claude/plugins/claude-
 
 ---
 
-## ❓ FAQ
+## FAQ
 
 <details>
 <summary><b>会消耗额外的 token 吗？</b></summary>
