@@ -1,0 +1,102 @@
+import type { ColorScheme } from '../types.js';
+
+export const RESET = '\x1b[0m';
+
+export function dim(text: string): string {
+  return `\x1b[2m${text}${RESET}`;
+}
+
+export function bold(text: string): string {
+  return `\x1b[1m${text}${RESET}`;
+}
+
+export function red(text: string): string {
+  return `\x1b[31m${text}${RESET}`;
+}
+
+export function green(text: string): string {
+  return `\x1b[32m${text}${RESET}`;
+}
+
+export function yellow(text: string): string {
+  return `\x1b[33m${text}${RESET}`;
+}
+
+export function cyan(text: string): string {
+  return `\x1b[36m${text}${RESET}`;
+}
+
+export function magenta(text: string): string {
+  return `\x1b[35m${text}${RESET}`;
+}
+
+export function blue(text: string): string {
+  return `\x1b[34m${text}${RESET}`;
+}
+
+export function white(text: string): string {
+  return `\x1b[37m${text}${RESET}`;
+}
+
+export function brightGreen(text: string): string {
+  return `\x1b[92m${text}${RESET}`;
+}
+
+export function brightYellow(text: string): string {
+  return `\x1b[93m${text}${RESET}`;
+}
+
+export function brightBlue(text: string): string {
+  return `\x1b[94m${text}${RESET}`;
+}
+
+export function brightCyan(text: string): string {
+  return `\x1b[96m${text}${RESET}`;
+}
+
+export function brightMagenta(text: string): string {
+  return `\x1b[95m${text}${RESET}`;
+}
+
+export function brightWhite(text: string): string {
+  return `\x1b[97m${text}${RESET}`;
+}
+
+export function getContextColor(percent: number, scheme: ColorScheme): string {
+  if (scheme === 'mono-green') return '\x1b[32m';
+  if (scheme === 'mono-blue') return '\x1b[34m';
+  // vibrant and muted use the same thresholds for context
+  if (percent < 20) return '\x1b[32m';   // green
+  if (percent < 40) return '\x1b[92m';   // brightGreen
+  if (percent < 60) return '\x1b[33m';   // yellow
+  if (percent < 80) return '\x1b[93m';   // brightYellow
+  return '\x1b[31m';                      // red
+}
+
+export function getQuotaColor(percent: number, scheme: ColorScheme): string {
+  if (scheme === 'mono-green') return '\x1b[32m';
+  if (scheme === 'mono-blue') return '\x1b[34m';
+  if (scheme === 'vibrant') {
+    if (percent < 75) return '\x1b[94m';  // brightBlue
+    if (percent < 90) return '\x1b[95m';  // brightMagenta
+    return '\x1b[31m';                     // red
+  }
+  // muted
+  if (percent < 75) return '\x1b[34m';   // blue
+  if (percent < 90) return '\x1b[35m';   // magenta
+  return '\x1b[31m';                      // red
+}
+
+export function getModelColor(model: 'O' | 'S' | 'H', scheme: ColorScheme): string {
+  if (scheme === 'mono-green') return '\x1b[32m';
+  if (scheme === 'mono-blue') return '\x1b[34m';
+  if (scheme === 'vibrant') {
+    if (model === 'O') return '\x1b[96m';  // brightCyan
+    if (model === 'S') return '\x1b[92m';  // brightGreen
+    return '\x1b[93m';                      // brightYellow (H)
+  }
+  // muted
+  if (model === 'O') return '\x1b[36m';   // cyan
+  if (model === 'S') return '\x1b[32m';   // green
+  return '\x1b[33m';                       // yellow (H)
+}

@@ -1,0 +1,7 @@
+{
+  "name": "claude-dash",
+  "version": "0.1.0",
+  "description": "Model-aware statusline for Claude Code",
+  "type": "statusline",
+  "entrypoint": "dist/index.js"
+}

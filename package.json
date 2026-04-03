@@ -1,0 +1,31 @@
+{
+  "name": "claude-dash",
+  "version": "0.1.0",
+  "description": "Model-aware statusline for Claude Code — track usage, quotas, and per-turn model stats",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "npm run build && node --test",
+    "test:coverage": "npm run build && c8 --reporter=text --reporter=lcov node --test",
+    "preview": "node dist/preview.js"
+  },
+  "keywords": [
+    "claude-code",
+    "statusline",
+    "dashboard",
+    "model-stats",
+    "token-tracking"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "c8": "^11.0.0",
+    "typescript": "^5.0.0"
+  }
+}
