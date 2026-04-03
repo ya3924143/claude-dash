@@ -4,7 +4,8 @@ import { readStdin, getContextPercent } from './stdin.js';
 import { loadConfig } from './config.js';
 import { parseSessionStats } from './transcript.js';
 import { render } from './render/index.js';
-import type { RenderContext, UsageData } from './types.js';
+import { getUsage } from './usage-api.js';
+import type { RenderContext } from './types.js';
 
 export function formatSessionDuration(startedAt: Date, now: Date = new Date()): string {
   const diffMs = now.getTime() - startedAt.getTime();
@@ -40,8 +41,7 @@ export async function main(): Promise<void> {
 
     const contextPercent = getContextPercent(stdin);
 
-    // Usage API integration will be added later
-    const usageData: UsageData | null = null;
+    const usageData = await getUsage();
 
     const ctx: RenderContext = {
       stdin,

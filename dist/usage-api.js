@@ -10,6 +10,18 @@ const DEFAULT_FAILURE_CACHE_TTL_MS = 30_000; // 30 seconds
 function getCachePath() {
     return join(homedir(), CONFIG_DIR, USAGE_CACHE_FILE);
 }
+function getPlanName(subscriptionType) {
+    const lower = subscriptionType.toLowerCase();
+    if (lower.includes('max'))
+        return 'Max';
+    if (lower.includes('pro'))
+        return 'Pro';
+    if (lower.includes('team'))
+        return 'Team';
+    if (!subscriptionType || lower.includes('api'))
+        return null;
+    return subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1);
+}
 async function readCredentials() {
     const credPath = join(homedir(), CREDENTIALS_PATH);
     if (!existsSync(credPath))
@@ -20,7 +32,12 @@ async function readCredentials() {
         if (typeof parsed !== 'object' || parsed === null)
             return null;
         const creds = parsed;
-        return creds.claudeAiOauth?.accessToken ?? null;
+        const accessToken = creds.claudeAiOauth?.accessToken;
+        if (!accessToken)
+            return null;
+        const subscriptionType = creds.claudeAiOauth?.subscriptionType ?? '';
+        const planName = getPlanName(subscriptionType);
+        return { accessToken, planName };
     }
     catch {
         return null;
@@ -76,7 +93,7 @@ function parseApiResponse(body, planName) {
         sevenDayResetAt: sevenDay?.resets_at ? new Date(sevenDay.resets_at) : null,
     };
 }
-async function fetchUsageFromApi(token) {
+async function fetchUsageFromApi(token, planName) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10_000);
     try {
@@ -117,7 +134,7 @@ async function fetchUsageFromApi(token) {
         if (typeof body !== 'object' || body === null) {
             return null;
         }
-        return parseApiResponse(body, 'Max');
+        return parseApiResponse(body, planName);
     }
     catch (error) {
         clearTimeout(timeoutId);
@@ -151,10 +168,10 @@ export async function getUsage(options) {
     const cached = await readCache(ttls);
     if (cached !== null)
         return cached;
-    const token = await readCredentials();
-    if (!token)
+    const credentials = await readCredentials();
+    if (!credentials)
         return null;
-    const data = await fetchUsageFromApi(token);
+    const data = await fetchUsageFromApi(credentials.accessToken, credentials.planName);
     if (data !== null) {
         await writeCache(data);
     }

@@ -14,6 +14,7 @@ const DEFAULT_FAILURE_CACHE_TTL_MS = 30_000; // 30 seconds
 interface CredentialsFile {
   claudeAiOauth?: {
     accessToken?: string;
+    subscriptionType?: string;
   };
 }
 
@@ -43,7 +44,21 @@ function getCachePath(): string {
   return join(homedir(), CONFIG_DIR, USAGE_CACHE_FILE);
 }
 
-async function readCredentials(): Promise<string | null> {
+interface Credentials {
+  accessToken: string;
+  planName: string | null;
+}
+
+function getPlanName(subscriptionType: string): string | null {
+  const lower = subscriptionType.toLowerCase();
+  if (lower.includes('max')) return 'Max';
+  if (lower.includes('pro')) return 'Pro';
+  if (lower.includes('team')) return 'Team';
+  if (!subscriptionType || lower.includes('api')) return null;
+  return subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1);
+}
+
+async function readCredentials(): Promise<Credentials | null> {
   const credPath = join(homedir(), CREDENTIALS_PATH);
   if (!existsSync(credPath)) return null;
 
@@ -54,7 +69,13 @@ async function readCredentials(): Promise<string | null> {
     if (typeof parsed !== 'object' || parsed === null) return null;
 
     const creds = parsed as CredentialsFile;
-    return creds.claudeAiOauth?.accessToken ?? null;
+    const accessToken = creds.claudeAiOauth?.accessToken;
+    if (!accessToken) return null;
+
+    const subscriptionType = creds.claudeAiOauth?.subscriptionType ?? '';
+    const planName = getPlanName(subscriptionType);
+
+    return { accessToken, planName };
   } catch {
     return null;
   }
@@ -114,7 +135,7 @@ function parseApiResponse(body: UsageApiResponse, planName: string | null): Usag
   };
 }
 
-async function fetchUsageFromApi(token: string): Promise<UsageData | null> {
+async function fetchUsageFromApi(token: string, planName: string | null): Promise<UsageData | null> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
@@ -161,7 +182,7 @@ async function fetchUsageFromApi(token: string): Promise<UsageData | null> {
       return null;
     }
 
-    return parseApiResponse(body as UsageApiResponse, 'Max');
+    return parseApiResponse(body as UsageApiResponse, planName);
   } catch (error: unknown) {
     clearTimeout(timeoutId);
 
@@ -198,10 +219,10 @@ export async function getUsage(options?: GetUsageOptions): Promise<UsageData | n
   const cached = await readCache(ttls);
   if (cached !== null) return cached;
 
-  const token = await readCredentials();
-  if (!token) return null;
+  const credentials = await readCredentials();
+  if (!credentials) return null;
 
-  const data = await fetchUsageFromApi(token);
+  const data = await fetchUsageFromApi(credentials.accessToken, credentials.planName);
   if (data !== null) {
     await writeCache(data);
   }
