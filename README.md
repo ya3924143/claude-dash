@@ -19,13 +19,44 @@
 
 ## Quick Start
 
-```bash
-# 安装插件
-claude plugins install claude-dash
+### 方式 1: Clone 安装（推荐）
 
-# 交互式配置
+```bash
+# 1. 克隆到本地插件目录
+git clone https://github.com/ya3924143/claude-dash.git ~/.claude/plugins/claude-dash
+
+# 2. 在 ~/.claude/settings.json 中添加 statusLine 配置
+# （如果已有 statusLine 字段，替换即可）
+```
+
+在 `~/.claude/settings.json` 的顶层添加：
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node ~/.claude/plugins/claude-dash/dist/index.js"
+  }
+}
+```
+
+```bash
+# 3. 重启 Claude Code 即可生效
+```
+
+### 方式 2: 手动下载
+
+如果不想用 git，直接 [下载 ZIP](https://github.com/ya3924143/claude-dash/archive/refs/heads/main.zip) 解压到 `~/.claude/plugins/claude-dash/`，然后同样配置 `statusLine`。
+
+### 选择方案
+
+安装后在 Claude Code 中运行：
+
+```
 /claude-dash:setup
 ```
+
+或直接编辑 `~/.claude/plugins/claude-dash/config.json` 选择 preset 和自定义配置。
 
 ---
 
