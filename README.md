@@ -1,155 +1,82 @@
-<div align="center">
+# claude-dash
 
-# ⚡ claude-dash
+> 基于代码生成，最后更新：2026-04-04
 
-**Model-aware statusline for Claude Code**
+Claude Code 的模型感知状态栏插件——实时追踪模型调用次数、token 用量与配额进度。
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet.svg)](https://claude.ai/code)
-
-实时追踪 Opus / Sonnet / Haiku 调用次数与 token 用量<br>
-监控 5h/7d 配额 · 绝对刷新时间 · 渐变上下文指示器<br>
-**零额外 token 消耗 · 不会封号 · 纯本地渲染**
-
-</div>
 
 ---
 
-## 特性
+## 功能特性
 
-- **逐轮模型追踪** — 上轮 / 本轮 / 对话累计的 O·S·H 调用次数 + token
-- **配额进度条** — 5h / 7d 用量 + 绝对刷新时间（如 `17:42`）
-- **上下文指示器** — `○ ◔ ◑ ◕ ●` 五级圆弧，颜色随用量渐变
-- **10 款内置方案** — 经典 / 极简 / 仪表盘 / 霓虹 / 复古 等，开箱即用
-- **完全可配置** — 每个元素独立开关，自由组合
-- **安全无副作用** — 零 token 消耗，不调 AI API，不会封号
+- **逐轮模型追踪** — 上轮 / 本轮 / 对话累计的 Opus·Sonnet·Haiku 调用次数与 token
+- **Sub-agent 归因** — 自动将 sub-agent 的 token 消耗归入对应主轮次
+- **配额进度条** — 5h / 7d 用量 + 刷新时间（绝对/相对/双显）
+- **上下文指示器** — 五级圆弧 `○ ◔ ◑ ◕ ●`，颜色随用量渐变
+- **10 款内置方案** — default / compact / minimal / dashboard / neon / zen / powerline / retro / pro / stealth
+- **完全可配置** — 每个显示元素独立开关，支持自定义布局、进度条风格、配色方案
+- **零 token 消耗** — 纯本地渲染，不调用 AI API
 
 ---
 
 ## 安装
 
-在 Claude Code 中直接说：
+### 推荐：通过 Claude Code 插件机制
 
-> **帮我安装 claude-dash 插件：https://github.com/ya3924143/claude-dash**
+在 Claude Code 中运行：
 
-Claude 会自动完成 clone、配置 statusLine、重启生效。
+```
+/plugin install https://github.com/ya3924143/claude-dash
+```
 
-<details>
-<summary>📋 或者手动安装（两步）</summary>
+安装完成后执行 `/claude-dash:setup` 交互式选择方案。
+
+### 手动安装
 
 ```bash
 git clone https://github.com/ya3924143/claude-dash.git ~/.claude/plugins/claude-dash
 ```
 
-在 `~/.claude/settings.json` 顶层添加：
-
-```json
-"statusLine": {
-  "type": "command",
-  "command": "node ~/.claude/plugins/claude-dash/dist/index.js"
-}
-```
-
-重启 Claude Code 即可。
-
-</details>
+在 `~/.claude/settings.json` 中添加 `statusLine` 配置（见 [docs/OPERATIONS.md](docs/OPERATIONS.md)）。
 
 ---
 
-## 方案一览
+## 方案预览
 
-安装后输入 `/claude-dash:setup` 选择方案，或直接编辑配置文件。
+安装后运行预览脚本查看所有方案渲染效果：
 
-### `default` — 经典三行 · 全部显示
+```bash
+# 使用 bun（推荐）
+bun ~/.claude/plugins/claude-dash/src/preview.ts
 
-```
-[Opus 4.6 (1M context) | Max]  ○ 4%      对话 O:×28 S:×14 H:×6 384.2k
-5h ██░░░░░░░░ 19% (刷新时间: 17:42)  │  7d ████░░░░░░ 41% (刷新时间: 04/08 01:00)
-上轮 O:×3 S:×1 12.4k  │  本轮 O:×5 S:×2 H:×1 18.7k
-```
-
-### `compact` — 紧凑双行
-
-```
-[Sonnet 4.6 | Max]  ◔ 18%      对话 O:×12 S:×31 H:×4 210.6k
-5h ████░░░░ 43% (刷新时间: 19:05)  │  7d ██░░░░░░ 27% (刷新时间: 04/09 00:00)
-上轮 S:×2 8.1k  │  本轮 S:×3 11.5k
+# 使用 node
+node ~/.claude/plugins/claude-dash/dist/preview.js
 ```
 
-### `minimal` — 极简 · 只看本轮 · 隐藏 Plan
+内置方案一览：
 
-```
-[Haiku 4.5]  ○ 6%      对话 S:×8 H:×22 47.3k
-5h ○ 12% (刷新时间: 22:30)  │  7d ◔ 34% (刷新时间: 04/09 00:00)
-本轮 H:×6 5.0k
-```
-
-### `dashboard` — 仪表盘 · 标签对齐
-
-```
-  model  Opus 4.6 (1M context) | Max        tokens 891.4k
-    ctx  █████████░░░░░░░░░░░ 67%
-     5h  ████████░░░░░░░░░░░░ 67% (刷新时间: 18:30)
-     7d  █████░░░░░░░░░░░░░░░ 44% (刷新时间: 04/10 01:00)
-   上轮  O:×6 S:×1 22.1k
-   本轮  O:×9 S:×3 H:×1 39.7k
-```
-
-### `neon` — 霓虹渐变
-
-```
-[Opus 4.6 (1M context) | Max]  ◑ 52%     对话 O:×41 S:×19 H:×7 1.2M
-5h ▏▎▍▌▋▊▉█░░░░ 38% (刷新时间: 20:15)  │  7d ▏▎▍▌▋▊▉████░ 58% (刷新时间: 04/08)
-上轮 O:×4 S:×2 19.8k  │  本轮 O:×7 S:×3 31.2k
-```
-
-### `zen` — 禅意色点 · 只看本轮
-
-```
-[Sonnet 4.6 | Max]  ○ 9%      对话 S:×15 H:×3 98.7k
-5h ● 8% (刷新时间: 22:30)  │  7d ● 21% (刷新时间: 04/08 01:00)
-本轮 S:×2 H:×1 7.9k
-```
-
-### `powerline` — Powerline · 只看本轮
-
-```
-[Opus 4.6 (1M context) | Max]  ◔ 23%     对话 O:×18 S:×11 245.0k
-5h ▓▓▓▓░░░░░░ 39% (刷新时间: 16:55)  │  7d ▓▓▓▓▓▓░░░░ 61% (刷新时间: 04/09)
-本轮 O:×3 S:×1 14.2k
-```
-
-### `retro` — 复古 ASCII · 隐藏 Plan
-
-```
-[Opus 4.6 (1M context)]  ○ 21%   对话 O:×9 S:×5 132.5k
-5h [####------] 41% (刷新时间: 21:00)  |  7d [######----] 63% (刷新时间: 04/08)
-上轮 O:×3 14.1k  |  本轮 O:×5 S:×1 20.8k
-```
-
-### `pro` — 专业双时间 · 全部显示
-
-```
-[Opus 4.6 (1M context) | Max]  ◕ 79%      对话 O:×67 S:×28 H:×11 2.3M
-5h ████████░░ 81% (刷新时间: 17:42 / 2h 18m)  │  7d ███░░░░░░░ 33% (刷新时间: 04/08 / 4d 22h)
-上轮 O:×8 S:×2 H:×1 41.0k  │  本轮 O:×11 S:×4 61.3k
-```
-
-### `stealth` — 隐身 · 只看额度
-
-```
-[Opus 4.6 (1M context)]  ○ 3%
-5h ██░░░░░░ 17%  │  7d ███░░░░░ 36%
-```
+| 方案 | 布局 | 说明 |
+|------|------|------|
+| `default` | standard | 经典三行，全部显示 |
+| `compact` | compact | 紧凑双行，全部显示 |
+| `minimal` | compact | 极简，只看本轮，隐藏 Plan |
+| `dashboard` | dashboard | 仪表盘，标签对齐 |
+| `neon` | standard | 霓虹渐变进度条 |
+| `zen` | standard | 禅意色点，只看本轮 |
+| `powerline` | compact | Powerline 风格，只看本轮 |
+| `retro` | standard | 复古 ASCII 进度条 |
+| `pro` | standard | 双时间显示，全部信息 |
+| `stealth` | compact | 隐身，只看配额和上下文 |
 
 ---
 
 ## 配置
 
-配置文件：`~/.claude/plugins/claude-dash/config.json`
+配置文件路径：`~/.claude/plugins/claude-dash/config.json`（见 [docs/OPERATIONS.md](docs/OPERATIONS.md)）
 
-只需写你要改的字段，其余沿用 preset 默认值：
+只需写要覆盖的字段，其余沿用方案默认值：
 
 ```json
 {
@@ -159,99 +86,70 @@ git clone https://github.com/ya3924143/claude-dash.git ~/.claude/plugins/claude-
 }
 ```
 
-### 全部配置项
-
-| 配置项 | 可选值 | 默认 | 说明 |
-|--------|--------|------|------|
-| `preset` | 方案名称 | `"default"` | 基础方案 |
-| `layout` | `compact` · `standard` · `dashboard` | `standard` | 布局 |
-| `barStyle` | `block` · `half` · `gradient` · `dot` · `circle` · `ascii` | `block` | 进度条 |
-| `contextIndicator` | `bar` · `circle` | `circle` | 上下文指示器 |
-| `timeFormat` | `absolute` · `relative` · `both` | `absolute` | 时间格式 |
-| `colorScheme` | `vibrant` · `muted` · `mono-green` · `mono-blue` | `vibrant` | 配色 |
-| `barWidth` | 数字 | `10` | 进度条宽度，`0` = 不显示条形 |
-| `showLastTurn` | `true` / `false` | `true` | 上一轮统计 |
-| `showCurrentTurn` | `true` / `false` | `true` | 当前轮统计 |
-| `showSessionStats` | `true` / `false` | `true` | 对话累计 |
-| `showPlanName` | `true` / `false` | `true` | Max/Pro 标识 |
-| `showResetTime` | `true` / `false` | `true` | 刷新时间 |
-
-### 组合示例
-
-<details>
-<summary><b>只看本轮 + 隐藏刷新时间</b></summary>
-
-```json
-{ "showLastTurn": false, "showResetTime": false }
-```
-```
-[Sonnet 4.6 | Max]  ◔ 31%      对话 S:×18 H:×4 156.3k
-5h ███░░░░░░░ 31%  │  7d █████░░░░░ 52%
-本轮 S:×3 H:×1 22.6k
-```
-</details>
-
-<details>
-<summary><b>纯净模式 — 只保留进度条</b></summary>
-
-```json
-{ "preset": "stealth", "showResetTime": false }
-```
-```
-[Haiku 4.5]  ○ 7%
-5h ██░░░░░░ 22%  │  7d ████░░░░ 43%
-```
-</details>
-
-<details>
-<summary><b>信息全开 + 双时间 + 宽进度条</b></summary>
-
-```json
-{ "preset": "pro", "barWidth": 12 }
-```
-```
-[Opus 4.6 (1M context) | Max]  ◕ 74%      对话 O:×52 S:×23 H:×9 1.8M
-5h ████████████░░░░░░░░ 74% (刷新时间: 18:05 / 1h 55m)  │  7d ██████░░░░░░░░░░░░ 48% (刷新时间: 04/08 / 4d 19h)
-上轮 O:×7 S:×2 35.4k  │  本轮 O:×10 S:×4 57.1k
-```
-</details>
+完整配置项说明见 [docs/OPERATIONS.md](docs/OPERATIONS.md)。
 
 ---
 
-## FAQ
+## 目录结构
 
-<details>
-<summary><b>会消耗额外的 token 吗？</b></summary>
-
-不会。claude-dash 是纯本地渲染，Claude Code 通过 stdin 管道传入状态数据，不调用任何 AI API。Usage 数据通过 Anthropic OAuth API 读取（和官方插件相同机制），不计入 token 消耗。
-</details>
-
-<details>
-<summary><b>会导致封号吗？</b></summary>
-
-不会。statusline 是 Claude Code 官方支持的插件类型，Usage API 是公开的 OAuth 接口。
-</details>
-
-<details>
-<summary><b>和 claude-hud 是什么关系？</b></summary>
-
-claude-dash 基于 [claude-hud](https://github.com/jarrodwatts/claude-hud)（MIT License, by Jarrod Watts）的架构思路开发，在此基础上增加了模型使用统计、轮次追踪、绝对刷新时间、可配置开关等功能。感谢 Jarrod Watts 的开源贡献。
-</details>
-
-<details>
-<summary><b>如何切换方案？</b></summary>
-
-在 Claude Code 中输入 `/claude-dash:setup`，或直接编辑 `~/.claude/plugins/claude-dash/config.json`。修改后无需重启，下次渲染自动生效。
-</details>
+```
+claude-dash/
+├── src/
+│   ├── index.ts          # 主入口，数据编排与输出
+│   ├── types.ts          # 所有 TypeScript 类型定义
+│   ├── config.ts         # 配置加载与持久化
+│   ├── constants.ts      # 路径常量
+│   ├── presets.ts        # 10 款内置方案定义
+│   ├── stdin.ts          # 读取 Claude Code stdin 管道数据
+│   ├── transcript.ts     # 解析会话记录，统计模型调用
+│   ├── usage-api.ts      # 读取 Anthropic 用量 API（含缓存）
+│   └── render/
+│       ├── index.ts      # 渲染编排，终端宽度适配
+│       ├── bars.ts       # 进度条样式渲染（6 种）
+│       ├── colors.ts     # ANSI 颜色工具与语义色函数
+│       ├── identity.ts   # 第一行：模型 + 上下文 + 对话累计
+│       ├── turns.ts      # 第三行：上轮/本轮模型统计
+│       └── usage.ts      # 第二行：5h/7d 配额进度条
+├── commands/
+│   └── setup.md          # /claude-dash:setup 交互配置向导
+├── dist/                 # TypeScript 编译输出（随版本发布）
+├── docs/
+│   ├── ARCHITECTURE.md   # 系统架构文档
+│   └── OPERATIONS.md     # 安装、配置、运维手册
+├── package.json
+└── tsconfig.json
+```
 
 ---
 
-<div align="center">
+## 开发
+
+```bash
+# 安装依赖
+npm install
+
+# 编译
+npm run build
+
+# 监听模式
+npm run dev
+
+# 预览所有方案（需先编译）
+npm run preview
+
+# 运行测试
+npm test
+
+# 测试覆盖率
+npm run test:coverage
+```
+
+**运行环境要求：** Node.js >= 18
+
+---
 
 ## 致谢
 
-Based on [claude-hud](https://github.com/jarrodwatts/claude-hud) by **Jarrod Watts** · MIT License
+基于 [claude-hud](https://github.com/jarrodwatts/claude-hud)（MIT License，作者 Jarrod Watts）架构思路开发。
 
 **MIT © claude-dash contributors**
-
-</div>
