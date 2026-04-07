@@ -101,7 +101,8 @@ function renderQuotaSegment(
   }
 
   if (percent >= 100) {
-    return `${labelStr} ${red('⚠ 已达上限')}`;
+    const timePart = (resetAt && timeFormat) ? ` ${formatResetTime(resetAt, timeFormat)}` : '';
+    return `${labelStr} ${red('⚠ 已达上限')}${timePart}`;
   }
 
   const colorCode = getQuotaColor(percent, colorScheme);
@@ -135,7 +136,8 @@ function renderDashboardQuotaLine(
   }
 
   if (percent >= 100) {
-    return `     ${labelStr}  ${red('⚠ 已达上限')}`;
+    const timePart = (resetAt && timeFormat) ? ` ${formatResetTime(resetAt, timeFormat)}` : '';
+    return `     ${labelStr}  ${red('⚠ 已达上限')}${timePart}`;
   }
 
   const colorCode = getQuotaColor(percent, colorScheme);
