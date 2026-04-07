@@ -1,5 +1,5 @@
 import { getModelName } from '../stdin.js';
-import { dim, bold, cyan, magenta, brightWhite, RESET, getContextColor, getModelColor, } from './colors.js';
+import { dim, bold, blue, cyan, magenta, brightWhite, RESET, getContextColor, getModelColor, } from './colors.js';
 import { renderContextCircle, renderBar } from './bars.js';
 export function renderIdentityLine(ctx) {
     const { stdin, config, usageData, sessionStats, contextPercent } = ctx;
@@ -34,7 +34,8 @@ function renderStandardIdentity(ctx, modelLabel, contextPercent, showSessionStat
         const tokenStr = magenta(formatTokens(totalTokens));
         sessionPart = `  ${label} ${parts} ${tokenStr}`;
     }
-    return `${bracketedModel}  ${contextPart}${sessionPart}`;
+    const cwdPart = ctx.stdin.cwd ? `  ${blue(`[${extractProjectName(ctx.stdin.cwd)}]`)}` : '';
+    return `${bracketedModel}  ${contextPart}${sessionPart}${cwdPart}`;
 }
 function renderDashboardIdentity(ctx, modelName, planName, modelLabel) {
     const { stdin, config, sessionStats, contextPercent } = ctx;
@@ -48,6 +49,13 @@ function renderDashboardIdentity(ctx, modelName, planName, modelLabel) {
     const bar = renderBar(contextPercent, barWidth, barStyle, ctxColor);
     const ctxLine = `    ${dim('ctx')}  ${bar} ${ctxColorCode}${contextPercent}%${RESET}`;
     return `${modelLine}\n${ctxLine}`;
+}
+function extractProjectName(cwd) {
+    const home = process.env.HOME ?? '';
+    const display = home && cwd.startsWith(home) ? '~' + cwd.slice(home.length) : cwd;
+    // 只取最后一级目录名，如果是 home 则显示 ~
+    const parts = cwd.split('/').filter(Boolean);
+    return parts.length > 0 ? parts[parts.length - 1] : display;
 }
 function buildModelCount(model, count, scheme) {
     if (count === 0)

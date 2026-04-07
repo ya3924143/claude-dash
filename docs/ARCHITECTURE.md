@@ -32,7 +32,7 @@ index.ts          ← 数据编排，构建 RenderContext
   │
   ▼
 render/index.ts   ← 根据 layout 选择渲染策略，处理终端宽度
-  ├── identity.ts ← 第一行：模型名 + 计划 + 上下文指示器 + 对话累计
+  ├── identity.ts ← 第一行：模型名 + 计划 + 上下文指示器 + 对话累计 + 项目名
   ├── usage.ts    ← 第二行：5h/7d 配额进度条 + 刷新时间
   └── turns.ts    ← 第三行：上轮/本轮模型调用统计
         └── bars.ts   ← 进度条渲染（6 种风格）
@@ -143,6 +143,8 @@ stdout (ANSI text) → Claude Code 状态栏
 ### `src/render/identity.ts` / `turns.ts` / `usage.ts`
 
 各自负责一行的渲染逻辑，内部按 `layout` 分支处理 standard 和 dashboard 两种呈现形式。
+
+`identity.ts` 在第一行末尾显示当前工作目录的项目名（蓝色方括号），从 `stdin.cwd` 提取最后一级目录名。
 
 ---
 

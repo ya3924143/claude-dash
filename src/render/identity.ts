@@ -1,7 +1,7 @@
 import type { RenderContext } from '../types.js';
 import { getModelName } from '../stdin.js';
 import {
-  dim, bold, cyan, magenta, brightWhite, brightCyan, brightGreen, brightYellow, RESET,
+  dim, bold, blue, cyan, magenta, brightWhite, brightCyan, brightGreen, brightYellow, RESET,
   getContextColor, getModelColor,
 } from './colors.js';
 import { renderContextCircle, renderBar } from './bars.js';
@@ -53,7 +53,9 @@ function renderStandardIdentity(
     sessionPart = `  ${label} ${parts} ${tokenStr}`;
   }
 
-  return `${bracketedModel}  ${contextPart}${sessionPart}`;
+  const cwdPart = ctx.stdin.cwd ? `  ${blue(`[${extractProjectName(ctx.stdin.cwd)}]`)}` : '';
+
+  return `${bracketedModel}  ${contextPart}${sessionPart}${cwdPart}`;
 }
 
 function renderDashboardIdentity(
@@ -77,6 +79,14 @@ function renderDashboardIdentity(
   const ctxLine = `    ${dim('ctx')}  ${bar} ${ctxColorCode}${contextPercent}%${RESET}`;
 
   return `${modelLine}\n${ctxLine}`;
+}
+
+function extractProjectName(cwd: string): string {
+  const home = process.env.HOME ?? '';
+  const display = home && cwd.startsWith(home) ? '~' + cwd.slice(home.length) : cwd;
+  // 只取最后一级目录名，如果是 home 则显示 ~
+  const parts = cwd.split('/').filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : display;
 }
 
 function buildModelCount(model: 'O' | 'S' | 'H', count: number, scheme: RenderContext['config']['colorScheme']): string {
