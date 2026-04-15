@@ -17,6 +17,7 @@ export interface StdinData {
   rate_limits?: {
     five_hour?: { used_percentage?: number; resets_at?: number; }; // resets_at: Unix epoch seconds
     seven_day?: { used_percentage?: number; resets_at?: number; }; // resets_at: Unix epoch seconds
+    seven_day_sonnet?: { used_percentage?: number; resets_at?: number; }; // Sonnet-only weekly quota
   };
 }
 
@@ -24,8 +25,10 @@ export interface UsageData {
   planName: string | null;
   fiveHour: number | null;
   sevenDay: number | null;
+  sevenDaySonnet: number | null;
   fiveHourResetAt: Date | null;
   sevenDayResetAt: Date | null;
+  sevenDaySonnetResetAt: Date | null;
   apiUnavailable?: boolean;
   apiError?: string;
 }

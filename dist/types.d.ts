@@ -25,14 +25,20 @@ export interface StdinData {
             used_percentage?: number;
             resets_at?: number;
         };
+        seven_day_sonnet?: {
+            used_percentage?: number;
+            resets_at?: number;
+        };
     };
 }
 export interface UsageData {
     planName: string | null;
     fiveHour: number | null;
     sevenDay: number | null;
+    sevenDaySonnet: number | null;
     fiveHourResetAt: Date | null;
     sevenDayResetAt: Date | null;
+    sevenDaySonnetResetAt: Date | null;
     apiUnavailable?: boolean;
     apiError?: string;
 }

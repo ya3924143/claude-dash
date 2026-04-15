@@ -13,8 +13,10 @@ const MOCK_USAGE = {
     planName: 'Max',
     fiveHour: 19,
     sevenDay: 41,
+    sevenDaySonnet: 27,
     fiveHourResetAt: new Date(Date.now() + 3 * 3_600_000 + 42 * 60_000),
     sevenDayResetAt: new Date(Date.now() + 4 * 86_400_000 + 11 * 3_600_000),
+    sevenDaySonnetResetAt: new Date(Date.now() + 4 * 86_400_000 + 11 * 3_600_000),
 };
 const MOCK_SESSION_STATS = {
     lastTurn: { models: { O: 3, S: 1, H: 0, tokens: 12_400 }, totalTokens: 12_400 },

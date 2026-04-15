@@ -16,11 +16,11 @@ function renderStandardIdentity(ctx, modelLabel, contextPercent, showSessionStat
     const { config } = ctx;
     const { colorScheme } = config;
     // [Model | Plan]
-    const bracketedModel = cyan(`[${modelLabel}]`);
+    const bracketedModel = bold(cyan(`[${modelLabel}]`));
     // Context indicator
     const circle = renderContextCircle(contextPercent, colorScheme);
     const ctxColorCode = getContextColor(contextPercent, colorScheme);
-    const ctxPercent = `${ctxColorCode}${contextPercent}%${RESET}`;
+    const ctxPercent = `\x1b[1m${ctxColorCode}${contextPercent}%${RESET}`;
     const contextPart = `${circle} ${ctxPercent}`;
     let sessionPart = '';
     if (showSessionStats) {

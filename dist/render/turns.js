@@ -1,5 +1,6 @@
-import { dim, RESET } from './colors.js';
+import { dim, bold, yellow, brightYellow, RESET } from './colors.js';
 import { getModelColor } from './colors.js';
+import { renderBar } from './bars.js';
 export function formatTokens(n) {
     if (n >= 1_000_000)
         return `${(n / 1_000_000).toFixed(1)}M`;
@@ -20,7 +21,7 @@ export function renderTurnsLine(ctx) {
     return renderStandardTurns(ctx);
 }
 function renderStandardTurns(ctx) {
-    const { config, sessionStats } = ctx;
+    const { config, sessionStats, usageData } = ctx;
     const { showLastTurn, showCurrentTurn, colorScheme } = config;
     const { lastTurn, currentTurn } = sessionStats;
     const segments = [];
@@ -30,7 +31,17 @@ function renderStandardTurns(ctx) {
     if (showCurrentTurn) {
         segments.push(buildTurnSegment('本轮', currentTurn.models, currentTurn.totalTokens, colorScheme));
     }
+    // Sonnet-only weekly quota — append after turns
+    segments.push(buildSonnetQuotaSegment(usageData?.sevenDaySonnet ?? null));
     return segments.join(`  ${dim('│')}  `);
+}
+function buildSonnetQuotaSegment(percent) {
+    const label = bold(yellow('Sonnet Only'));
+    if (percent === null) {
+        return `${label} ${dim('--')}`;
+    }
+    const bar = renderBar(percent, 6, 'gradient', brightYellow);
+    return `${label} ${bar} ${dim(`${percent}%`)}`;
 }
 function renderDashboardTurns(ctx) {
     const { config, sessionStats } = ctx;

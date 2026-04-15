@@ -2,8 +2,9 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { USAGE_CACHE_FILE, CONFIG_DIR } from './constants.js';
-const USAGE_API_URL = 'https://api.claude.ai/api/auth/usage';
+const USAGE_API_URL = 'https://api.anthropic.com/api/oauth/usage';
 const CREDENTIALS_PATH = '.claude/.credentials.json';
 const DEFAULT_CACHE_TTL_MS = 60_000; // 60 seconds
 const DEFAULT_FAILURE_CACHE_TTL_MS = 30_000; // 30 seconds
@@ -22,7 +23,32 @@ function getPlanName(subscriptionType) {
         return null;
     return subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1);
 }
+/** Read OAuth token from macOS Keychain (Claude Code-credentials) */
+function readFromKeychain() {
+    try {
+        const raw = execFileSync('security', ['find-generic-password', '-s', 'Claude Code-credentials', '-w'], { timeout: 5000 }).toString().trim();
+        return JSON.parse(raw);
+    }
+    catch {
+        return null;
+    }
+}
+/** Read plan name only (without full credentials) — used as fallback for plan display */
+export async function readPlanName() {
+    const creds = await readCredentials();
+    return creds?.planName ?? null;
+}
 async function readCredentials() {
+    // 1. Try macOS Keychain first (Claude Code stores credentials here)
+    const keychainData = readFromKeychain();
+    if (keychainData?.claudeAiOauth?.accessToken) {
+        const subscriptionType = keychainData.claudeAiOauth.subscriptionType ?? '';
+        return {
+            accessToken: keychainData.claudeAiOauth.accessToken,
+            planName: getPlanName(subscriptionType),
+        };
+    }
+    // 2. Fallback: file-based credentials
     const credPath = join(homedir(), CREDENTIALS_PATH);
     if (!existsSync(credPath))
         return null;
@@ -58,6 +84,7 @@ async function readCache(ttls) {
                 ...cache.data,
                 fiveHourResetAt: cache.data.fiveHourResetAt ? new Date(cache.data.fiveHourResetAt) : null,
                 sevenDayResetAt: cache.data.sevenDayResetAt ? new Date(cache.data.sevenDayResetAt) : null,
+                sevenDaySonnetResetAt: cache.data.sevenDaySonnetResetAt ? new Date(cache.data.sevenDaySonnetResetAt) : null,
             };
         }
         return null;
@@ -81,83 +108,60 @@ async function writeCache(data) {
 function parseApiResponse(body, planName) {
     const fiveHour = body.five_hour;
     const sevenDay = body.seven_day;
+    const sevenDaySonnet = body.seven_day_sonnet;
+    // api.anthropic.com/api/oauth/usage returns utilization as 0–100 (percentage), not 0–1
     return {
         planName,
         fiveHour: typeof fiveHour?.utilization === 'number'
-            ? Math.round(fiveHour.utilization * 100)
+            ? Math.round(fiveHour.utilization)
             : null,
         sevenDay: typeof sevenDay?.utilization === 'number'
-            ? Math.round(sevenDay.utilization * 100)
+            ? Math.round(sevenDay.utilization)
+            : null,
+        sevenDaySonnet: typeof sevenDaySonnet?.utilization === 'number'
+            ? Math.round(sevenDaySonnet.utilization)
             : null,
         fiveHourResetAt: fiveHour?.resets_at ? new Date(fiveHour.resets_at) : null,
         sevenDayResetAt: sevenDay?.resets_at ? new Date(sevenDay.resets_at) : null,
+        sevenDaySonnetResetAt: sevenDaySonnet?.resets_at ? new Date(sevenDaySonnet.resets_at) : null,
+    };
+}
+function makeFailure(apiError) {
+    return {
+        planName: null,
+        fiveHour: null,
+        sevenDay: null,
+        sevenDaySonnet: null,
+        fiveHourResetAt: null,
+        sevenDayResetAt: null,
+        sevenDaySonnetResetAt: null,
+        apiUnavailable: true,
+        apiError,
     };
 }
 async function fetchUsageFromApi(token, planName) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const proxyEnv = process.env['https_proxy']
+        ?? process.env['HTTPS_PROXY']
+        ?? process.env['http_proxy']
+        ?? process.env['HTTP_PROXY'];
+    const args = ['-s', '--max-time', '10'];
+    if (proxyEnv)
+        args.push('--proxy', proxyEnv);
+    args.push('-H', `Authorization: Bearer ${token}`, '-H', 'anthropic-beta: oauth-2025-04-20', USAGE_API_URL);
     try {
-        const response = await fetch(USAGE_API_URL, {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (response.status === 429) {
-            const failureData = {
-                planName: null,
-                fiveHour: null,
-                sevenDay: null,
-                fiveHourResetAt: null,
-                sevenDayResetAt: null,
-                apiUnavailable: true,
-                apiError: 'rate-limited',
-            };
-            return failureData;
-        }
-        if (!response.ok) {
-            const failureData = {
-                planName: null,
-                fiveHour: null,
-                sevenDay: null,
-                fiveHourResetAt: null,
-                sevenDayResetAt: null,
-                apiUnavailable: true,
-                apiError: `http-${response.status}`,
-            };
-            return failureData;
-        }
-        const body = await response.json();
-        if (typeof body !== 'object' || body === null) {
-            return null;
-        }
+        const raw = execFileSync('curl', args, { timeout: 12_000, encoding: 'utf-8' });
+        const body = JSON.parse(raw);
+        // API error envelope
+        if (body.type === 'error')
+            return makeFailure('api-error');
         return parseApiResponse(body, planName);
     }
-    catch (error) {
-        clearTimeout(timeoutId);
-        if (error instanceof Error && error.name === 'AbortError') {
-            return {
-                planName: null,
-                fiveHour: null,
-                sevenDay: null,
-                fiveHourResetAt: null,
-                sevenDayResetAt: null,
-                apiUnavailable: true,
-                apiError: 'timeout',
-            };
-        }
-        return {
-            planName: null,
-            fiveHour: null,
-            sevenDay: null,
-            fiveHourResetAt: null,
-            sevenDayResetAt: null,
-            apiUnavailable: true,
-            apiError: 'network-error',
-        };
+    catch (err) {
+        if (err instanceof Error && err.message.includes('status 1'))
+            return makeFailure('network-error');
+        if (err instanceof SyntaxError)
+            return makeFailure('parse-error');
+        return makeFailure('network-error');
     }
 }
 export async function getUsage(options) {

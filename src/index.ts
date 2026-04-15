@@ -4,10 +4,10 @@ import { readStdin, getContextPercent } from './stdin.js';
 import { loadConfig } from './config.js';
 import { parseSessionStats } from './transcript.js';
 import { render } from './render/index.js';
-import { getUsage } from './usage-api.js';
+import { getUsage, readPlanName } from './usage-api.js';
 import type { RenderContext, StdinData, UsageData } from './types.js';
 
-function getUsageFromStdin(stdin: StdinData): UsageData | null {
+function getUsageFromStdin(stdin: StdinData, planName: string | null): UsageData | null {
   const rl = stdin.rate_limits;
   if (!rl) return null;
 
@@ -18,14 +18,21 @@ function getUsageFromStdin(stdin: StdinData): UsageData | null {
 
   if (fiveHour === null && sevenDay === null) return null;
 
+  // Claude Code may include seven_day_sonnet in newer versions
+  const sevenDaySonnet = typeof rl.seven_day_sonnet?.used_percentage === 'number'
+    ? Math.round(rl.seven_day_sonnet.used_percentage) : null;
+
   return {
-    planName: 'Max', // TODO: stdin doesn't include plan info; fallback to credentials if available
+    planName,
     fiveHour,
     sevenDay,
+    sevenDaySonnet,
     fiveHourResetAt: rl.five_hour?.resets_at
       ? new Date(rl.five_hour.resets_at * 1000) : null,
     sevenDayResetAt: rl.seven_day?.resets_at
       ? new Date(rl.seven_day.resets_at * 1000) : null,
+    sevenDaySonnetResetAt: rl.seven_day_sonnet?.resets_at
+      ? new Date(rl.seven_day_sonnet.resets_at * 1000) : null,
   };
 }
 
@@ -63,7 +70,17 @@ export async function main(): Promise<void> {
 
     const contextPercent = getContextPercent(stdin);
 
-    const usageData = getUsageFromStdin(stdin) ?? await getUsage();
+    const apiUsage = await getUsage();
+    const planName = apiUsage?.planName ?? await readPlanName();
+    const stdinUsage = getUsageFromStdin(stdin, planName);
+    // Merge: use stdin for 5h/7d (real-time), API for sevenDaySonnet (not in stdin yet)
+    const usageData = stdinUsage
+      ? {
+          ...stdinUsage,
+          sevenDaySonnet: stdinUsage.sevenDaySonnet ?? apiUsage?.sevenDaySonnet ?? null,
+          sevenDaySonnetResetAt: stdinUsage.sevenDaySonnetResetAt ?? apiUsage?.sevenDaySonnetResetAt ?? null,
+        }
+      : apiUsage;
 
     const ctx: RenderContext = {
       stdin,
